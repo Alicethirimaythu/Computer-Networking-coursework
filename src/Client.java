@@ -6,8 +6,8 @@ import java.util.Scanner;
 public class Client {
 
     public static final String SERVER_HOSTNAME = "localhost";
-    private int serverPort = 3001;
-    private int clientPort = 3002;
+    private int serverPort = 3003;
+    private int clientPort = 3004;
 
     DatagramSocket clientSock;
 

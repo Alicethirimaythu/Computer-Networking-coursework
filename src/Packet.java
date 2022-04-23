@@ -49,7 +49,7 @@ public class Packet {
         this.sync_bit = ByteBuffer.wrap(byteArray, 12, 4).getInt() == 1;
         this.ack_bit = ByteBuffer.wrap(byteArray, 16, 4).getInt() == 1;
         this.fin_bit = ByteBuffer.wrap(byteArray, 20, 4).getInt() == 1;
-        this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length-24);
+        this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length);
     }
 
     // convert header into byte array and put both header byte array and data into one byte array

@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 public class Server {
 
     private static DatagramSocket socket;
-    private int port = 3001;
+    private int port = 3003;
     private String Servermessage = "Message is sent from the server";
 
     public static void main(String[] args){
