@@ -7,8 +7,8 @@ import java.nio.charset.StandardCharsets;
 public class Server {
 
     private static DatagramSocket socket;
-    private int port = 3000;
-    private String message = "Message is sent from the server";
+    private int port = 3001;
+    private String Servermessage = "Message is sent from the server";
 
     public static void main(String[] args){
         var server = new Server();
@@ -53,7 +53,8 @@ public class Server {
 
                     System.out.println("Client>> " + message);
 
-                    var outgoingPacket = new DatagramPacket(buffer, incomingPacket.getLength(),
+                    var serverMsg = Servermessage.getBytes(StandardCharsets.UTF_8);
+                    var outgoingPacket = new DatagramPacket(serverMsg, serverMsg.length,
                             clientAddress, clientPort);
 
                     socket.send(outgoingPacket);

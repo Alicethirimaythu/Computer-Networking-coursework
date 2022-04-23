@@ -6,7 +6,8 @@ import java.util.Scanner;
 public class Client {
 
     public static final String SERVER_HOSTNAME = "localhost";
-    private int serverPort = 3000;
+    private int serverPort = 3001;
+    private int clientPort = 3002;
 
     DatagramSocket clientSock;
 
@@ -19,7 +20,8 @@ public class Client {
         var scanner = new Scanner(System.in);
 
         try {
-            clientSock = new DatagramSocket();
+            clientSock = new DatagramSocket(clientPort);
+            System.out.println("Client is port is: " + clientPort);
 
         } catch (SocketException ex) {
             System.err.println(
@@ -38,7 +40,7 @@ public class Client {
             return;
         }
 
-        System.out.println("> ");
+        System.out.print("> ");
 
         byte[] buffer = new byte[256];
 
