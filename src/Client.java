@@ -8,7 +8,7 @@ public class Client {
 
     private static final int MAX_BUFFERSIZE = 512;
     private static InetAddress SERVER_HOSTNAME;
-    private int serverPort = 1234;
+    private int serverPort = 8080;
     private int selfPort = 5678;
     private State state = State.NONE;
     private int seq_num = 0;
@@ -35,57 +35,64 @@ public class Client {
             throw new RuntimeException(e);
         }
 
-        // Initial SYNC packet from the client send to the server to start the first handshake
-        Packet hs1 = new Packet();
-        seq_num = ThreadLocalRandom.current().nextInt(0, 2147483647);
+        while(!clientSock.isClosed()){
+            if(state == State.NONE){
+                // Initial SYNC packet from the client send to the server to start the first handshake
+                Packet hs1 = new Packet();
+                seq_num = ThreadLocalRandom.current().nextInt(0, 2147483647);
 
-        hs1.setSequence_num(seq_num);
-        hs1.setSync_bit(true);
-        hs1.setDest_port((short)serverPort);
-        hs1.setSrc_port((short)selfPort);
-        hs1.setData(null);
-        state = State.SYN_SEND;
+                hs1.setSequence_num(seq_num);
+                hs1.setSync_bit(true);
+                hs1.setDest_port((short)serverPort);
+                hs1.setSrc_port((short)selfPort);
+                hs1.setData(null);
+                state = State.SYN_SEND;
+                //System.out.println("hs1 packet: " + hs1.toString());
 
-        send(hs1.toByteArray());
-        System.out.println("Three way handshake 1/3!");
-
-        // second handshake where client received sync+ack packet from the server
-        byte[] buff = new byte[MAX_BUFFERSIZE];
-        DatagramPacket packet = new DatagramPacket(buff, buff.length);
-
-        try {
-            clientSock.receive(packet);
-            Packet hs2 = new Packet(buff);
-            System.out.println("Received from server>> " + hs2.toString());
-
-            if(state == State.SYN_SEND){
-
-                //third handshake where client send ack packet to server
-                if(hs2.getAck_num() == seq_num+1){
-                    System.out.println("Three way handshake 2/3");
-
-                    //send ACK packet to server
-                    Packet hs3 = new Packet();
-                    seq_num = hs2.getAck_num();
-                    hs3.setSequence_num(seq_num);
-                    hs3.setSync_bit(true);
-
-                    ack_num = hs2.getSequence_num() + 1;
-                    hs3.setAck_num(ack_num);
-                    hs3.setAck_bit(true);
-
-                    hs3.setDest_port((short)serverPort);
-                    hs3.setSrc_port((short)selfPort);
-                    send(hs3.toByteArray());
-                    System.out.println("Three way handshake 3/3");
-                    //...
-                }
+                send(hs1.toByteArray());
+                System.out.println("\nThree way handshake 1/3!");
             }
 
+            // second handshake where client received sync+ack packet from the server
+            byte[] buff = new byte[MAX_BUFFERSIZE];
+            DatagramPacket packet = new DatagramPacket(buff, buff.length);
 
-        } catch (IOException e) {
-            System.err.println("Failed to received packet!");
-            throw new RuntimeException(e);
+            try {
+                clientSock.receive(packet);
+                Packet hs2 = new Packet(buff);
+                System.out.println("\n<<Received from server>> " + hs2.toString());
+
+                if(state == State.SYN_SEND){
+
+                    //third handshake where client send ack packet to server
+                    if(hs2.getAck_num() == seq_num+1){
+                        System.out.println("\nThree way handshake 2/3");
+
+                        //send ACK packet to server
+                        Packet hs3 = new Packet();
+                        seq_num = hs2.getAck_num();
+                        hs3.setSequence_num(seq_num);
+                        hs3.setSync_bit(false);
+
+                        ack_num = hs2.getSequence_num() + 1;
+                        hs3.setAck_num(ack_num);
+                        hs3.setAck_bit(true);
+
+                        hs3.setDest_port((short)serverPort);
+                        hs3.setSrc_port((short)selfPort);
+                        send(hs3.toByteArray());
+                        System.out.println("\nThree way handshake 3/3");
+                        state = State.ESTABLISHED;
+                        //...
+                    }
+                }
+
+
+            } catch (IOException e) {
+                System.err.println("Failed to received packet!");
+                throw new RuntimeException(e);
+            }
+
         }
 
 

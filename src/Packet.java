@@ -13,23 +13,24 @@ public class Packet {
     private byte[] data;
 
     //for viewing the packet is doing right and testing some code
-    public static void main(String[] args){
-
-        byte[] data = null;
-        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, data);
-        System.out.println(Arrays.toString(p.toByteArray()));
-        System.out.println(p.toByteArray().length -24);
-        var a = Arrays.copyOfRange(p.toByteArray(), 24, p.toByteArray().length);
-        System.out.println("data length: " + a.length);
-
-        System.out.println(p.toString());
-    }
+//    public static void main(String[] args){
+//
+//        byte[] data = new byte[512];
+//        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, null);
+//        p.setData(data);
+//        System.out.println(Arrays.toString(p.toByteArray()));
+//        System.out.println(p.toByteArray().length -24);
+//        var a = Arrays.copyOfRange(p.toByteArray(), 24, p.toByteArray().length);
+//        System.out.println("data length: " + a.length);
+//
+//        System.out.println(p.toString());
+//    }
 
     public Packet(){
         this((short) 0, (short)0, 0, 0, false, false, false, null);
     }
 
-    public Packet(short src_port, short dest_port, int sequence_num, int ack_num, boolean sync_bit, boolean ack_bit, boolean fin_bit, byte[] data){
+    public Packet(short src_port, short dest_port, int sequence_num, int ack_num, boolean ack_bit, boolean sync_bit, boolean fin_bit, byte[] data){
         this.src_port = src_port;
         this.dest_port = dest_port;
         this.sequence_num = sequence_num;
@@ -46,9 +47,14 @@ public class Packet {
         this.dest_port = ByteBuffer.wrap(byteArray, 2, 2).getShort();
         this.sequence_num = ByteBuffer.wrap(byteArray, 4, 4).getInt();
         this.ack_num = ByteBuffer.wrap(byteArray, 8, 4).getInt();
-        this.sync_bit = ByteBuffer.wrap(byteArray, 12, 4).getInt() == 1;
-        this.ack_bit = ByteBuffer.wrap(byteArray, 16, 4).getInt() == 1;
-        this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length);
+        this.ack_bit = ByteBuffer.wrap(byteArray, 12, 4).getInt() == 1;
+        this.sync_bit = ByteBuffer.wrap(byteArray, 16, 4).getInt() == 1;
+        this.fin_bit = ByteBuffer.wrap(byteArray, 20, 4).getInt() == 1;
+        if(this.data == null){
+            this.data = null;
+        }else{
+            this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length);
+        }
     }
 
     // convert header into byte array and put both header byte array and data into one byte array
@@ -60,8 +66,8 @@ public class Packet {
             buffer.putShort(this.dest_port);
             buffer.putInt(this.sequence_num);
             buffer.putInt(this.ack_num);
-            buffer.putInt(this.sync_bit?1:0);
             buffer.putInt(this.ack_bit?1:0);
+            buffer.putInt(this.sync_bit?1:0);
             buffer.putInt(this.fin_bit?1:0);
         }
         else {
@@ -70,8 +76,8 @@ public class Packet {
             buffer.putShort(this.dest_port);
             buffer.putInt(this.sequence_num);
             buffer.putInt(this.ack_num);
-            buffer.putInt(this.sync_bit ? 1 : 0);
             buffer.putInt(this.ack_bit ? 1 : 0);
+            buffer.putInt(this.sync_bit ? 1 : 0);
             buffer.putInt(this.fin_bit ? 1 : 0);
             buffer.put(this.data);
         }
@@ -147,24 +153,24 @@ public class Packet {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         if(this.data == null){
-            builder.append("SRCP=").append(src_port).append(";").
-                    append("DESTP=").append(dest_port).append(";").
-                    append("SYNF=").append(sync_bit?1:0).append(";").
-                    append("SYNN=").append(sequence_num).append(";").
-                    append("ACKF=").append(ack_bit?1:0).append(";").
-                    append("ACKN=").append(ack_num).append(";").
-                    append("FINF=").append(fin_bit?1:0).append(";").
-                    append("DATA=").append("null");
+            builder.append("\nSource Port= ").append(src_port).append("; \n").
+                    append("Destination Port= ").append(dest_port).append("; \n").
+                    append("SYNC Bit= ").append(sync_bit).append("; \n").
+                    append("Sequence Number= ").append(sequence_num).append("; \n").
+                    append("ACK Bit= ").append(ack_bit).append("; \n").
+                    append("ACK Number= ").append(ack_num).append("; \n").
+                    append("FIN Bit= ").append(fin_bit).append("; \n").
+                    append("DATA= ").append("null;").append("\n");
         }
         else{
-            builder.append("SRCP=").append(src_port).append(";").
-                    append("DESTP=").append(dest_port).append(";").
-                    append("SYNF=").append(sync_bit?1:0).append(";").
-                    append("SYNN=").append(sequence_num).append(";").
-                    append("ACKF=").append(ack_bit?1:0).append(";").
-                    append("ACKN=").append(ack_num).append(";").
-                    append("FINF=").append(fin_bit?1:0).append(";").
-                    append("DATA=").append(Arrays.toString(data));
+            builder.append("\nSource Port= ").append(src_port).append("; \n").
+                    append("Destination Port= ").append(dest_port).append("; \n").
+                    append("SYNC Bit= ").append(sync_bit).append("; \n").
+                    append("Sequence Number= ").append(sequence_num).append("; \n").
+                    append("ACK Bit= ").append(ack_bit).append("; \n").
+                    append("ACK Number= ").append(ack_num).append("; \n").
+                    append("FIN Bit= ").append(fin_bit).append("; \n").
+                    append("DATA= ").append(Arrays.toString(data)).append("\n");
         }
         return builder.toString();
     }

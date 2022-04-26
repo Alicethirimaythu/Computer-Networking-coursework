@@ -10,7 +10,7 @@ public class Server {
 
     private static final int MAX_BUFFERSIZE = 512;
     private static DatagramSocket socket;
-    private final int port = 1234;
+    private final int port = 8080;
     private State state = State.NONE;
     private int seq_num = 0;
     private int ack_num = 0;
@@ -39,13 +39,13 @@ public class Server {
                    Packet hs1 = new Packet(buff);
                    var clientAddress = packet.getAddress();
                    var clientPort = packet.getPort();
-                   System.out.println("Received from Client>> " + hs1.toString());
+                   System.out.println("\n<<Received from Client>> " + hs1.toString());
 
                    if(state == State.NONE){
 
                        // second handshake where server acknowledge and send sync+ack packet to client
                        if(hs1.isSync_bit()){
-                           System.out.println("Three way handshake 1/3!");
+                           System.out.println("\nThree way handshake 1/3!");
 
                            //send ACK+SYN packet
                            Packet hs2 = new Packet();
@@ -61,13 +61,15 @@ public class Server {
                            hs2.setDest_port((short) clientPort);
                            state = State.SYN_RECV;
                            send(clientAddress, clientPort, hs2.toByteArray());
-                           System.out.println("Three way handshake 2/3!");
+                           System.out.println("\nThree way handshake 2/3!");
                        }
                    }else if(state == State.SYN_RECV){
                        if(hs1.isAck_bit() && hs1.getAck_num() == (++seq_num)){
                            state = State.ESTABLISHED;
-                           System.out.println("Three way handshake 3/3!"
+                           System.out.println("\nThree way handshake 3/3! "
                                                 + "Connection Established");
+
+
                        }
                    }
 
