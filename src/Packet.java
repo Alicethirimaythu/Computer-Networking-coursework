@@ -12,22 +12,22 @@ public class Packet {
     private boolean fin_bit; // 4 bytes
     private byte[] data;
 
-    //for viewing the packet is doing right and testing some code
-//    public static void main(String[] args){
-//
-//        byte[] data = new byte[512];
-//        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, null);
-//        p.setData(data);
-//        System.out.println(Arrays.toString(p.toByteArray()));
-//        System.out.println(p.toByteArray().length -24);
-//        var a = Arrays.copyOfRange(p.toByteArray(), 24, p.toByteArray().length);
-//        System.out.println("data length: " + a.length);
-//
-//        System.out.println(p.toString());
-//    }
+//    for viewing the packet is doing right and testing some code
+    public static void main(String[] args){
+
+        byte[] data = new byte[512];
+        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, null);
+        p.setData(data);
+        System.out.println(Arrays.toString(p.toByteArray()));
+        System.out.println(p.toByteArray().length -24);
+        var a = Arrays.copyOfRange(p.toByteArray(), 24, p.toByteArray().length);
+        System.out.println("data length: " + a.length);
+
+        System.out.println(p.toString());
+    }
 
     public Packet(){
-        this((short) 0, (short)0, 0, 0, false, false, false, null);
+        this((short) 0, (short)0, 0, 0, false, false, false, new byte[0]);
     }
 
     public Packet(short src_port, short dest_port, int sequence_num, int ack_num, boolean ack_bit, boolean sync_bit, boolean fin_bit, byte[] data){
@@ -43,16 +43,15 @@ public class Packet {
 
     //if the packet it in byte array, it will convert into the type that each variable/field have
     public Packet(byte[] byteArray){
-        this.src_port = ByteBuffer.wrap(byteArray, 0, 2).getShort();
-        this.dest_port = ByteBuffer.wrap(byteArray, 2, 2).getShort();
-        this.sequence_num = ByteBuffer.wrap(byteArray, 4, 4).getInt();
-        this.ack_num = ByteBuffer.wrap(byteArray, 8, 4).getInt();
-        this.ack_bit = ByteBuffer.wrap(byteArray, 12, 4).getInt() == 1;
-        this.sync_bit = ByteBuffer.wrap(byteArray, 16, 4).getInt() == 1;
-        this.fin_bit = ByteBuffer.wrap(byteArray, 20, 4).getInt() == 1;
-        if(this.data == null){
-            this.data = null;
-        }else{
+        byte[] trimmed = trimming(byteArray);
+        this.src_port = ByteBuffer.wrap(trimmed, 0, 2).getShort();
+        this.dest_port = ByteBuffer.wrap(trimmed, 2, 2).getShort();
+        this.sequence_num = ByteBuffer.wrap(trimmed, 4, 4).getInt();
+        this.ack_num = ByteBuffer.wrap(trimmed, 8, 4).getInt();
+        this.ack_bit = ByteBuffer.wrap(trimmed, 12, 4).getInt() == 1;
+        this.sync_bit = ByteBuffer.wrap(trimmed, 16, 4).getInt() == 1;
+        this.fin_bit = ByteBuffer.wrap(trimmed, 20, 4).getInt() == 1;
+        if(trimmed.length > 24){
             this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length);
         }
     }
@@ -83,6 +82,14 @@ public class Packet {
         }
 
         return buffer.array();
+    }
+
+    private byte[] trimming(byte[] byteArray){
+        int i = byteArray.length - 1;
+        while(i>=24 && byteArray[i] == 0){
+            --i;
+        }
+        return Arrays.copyOf(byteArray, i + 1);
     }
 
     public short getSrc_port() {
@@ -148,6 +155,7 @@ public class Packet {
     public void setData(byte[] data) {
         this.data = data;
     }
+
 
     @Override
     public String toString() {

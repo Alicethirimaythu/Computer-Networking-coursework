@@ -1,18 +1,21 @@
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Client {
 
-    private static final int MAX_BUFFERSIZE = 512;
+    private static final int MAX_BUFFERSIZE = 1024;
     private static InetAddress SERVER_HOSTNAME;
-    private int serverPort = 8080;
-    private int selfPort = 5678;
+    private int serverPort = 80;
+    private int selfPort = 12500;
     private State state = State.NONE;
     private int seq_num = 0;
     private int ack_num = 0;
+    private List<byte[]> img_list = new ArrayList<>();
 
     DatagramSocket clientSock;
 
@@ -57,6 +60,7 @@ public class Client {
             byte[] buff = new byte[MAX_BUFFERSIZE];
             DatagramPacket packet = new DatagramPacket(buff, buff.length);
 
+
             try {
                 clientSock.receive(packet);
                 Packet hs2 = new Packet(buff);
@@ -83,7 +87,56 @@ public class Client {
                         send(hs3.toByteArray());
                         System.out.println("\nThree way handshake 3/3");
                         state = State.ESTABLISHED;
-                        //...
+                        seq_num = ack_num;
+                        seq_num--;
+                    }
+                }else if(state == State.ESTABLISHED){
+                    // to store all the image packets send from the server.
+
+
+                    // receive the image data
+                    Packet ack = new Packet();
+                    if(hs2.getSequence_num() > seq_num && !hs2.isFin_bit()){
+                        img_list.add(hs2.getData());
+                        seq_num = hs2.getSequence_num();
+                        ack.setAck_bit(true);
+                        ack.setAck_num(hs2.getSequence_num() + hs2.getData().length);
+
+                        ack.setDest_port((short)serverPort);
+                        ack.setSrc_port((short)selfPort);
+                        send(ack.toByteArray());
+
+                    }else if(hs2.isFin_bit()){
+                        ImageHandler imgH = new ImageHandler(img_list);
+                        imgH.Convert_toImage();
+
+                        state = State.FIN_RECV;
+                        System.out.println("Four way handshake 1/4");
+
+                        // send fin_ack packet
+                        Packet finP = new Packet();
+
+                        finP.setAck_bit(true);
+                        finP.setAck_num(hs2.getSequence_num() + 1);
+
+                        finP.setDest_port((short)serverPort);
+                        finP.setSrc_port((short)selfPort);
+
+                        finP.setFin_bit(true);
+                        seq_num = ack_num + 1;
+                        finP.setSequence_num(seq_num);
+
+                        send(finP.toByteArray());
+                        state = State.FIN_SEND;
+                        send(finP.toByteArray());
+                        System.out.println("Four way handshake 2/4");
+                        System.out.println("Four way handshake 3/4");
+                    }
+                }else if(state == State.FIN_SEND){
+
+                    if(hs2.isAck_bit() && hs2.getSequence_num() == (++seq_num)){
+                        System.out.println("Four way handshake 4/4");
+                        clientSock.close();
                     }
                 }
 
@@ -111,95 +164,5 @@ public class Client {
             throw new RuntimeException(e);
         }
     }
-
-
-
-
-//    public void start(){
-//        var scanner = new Scanner(System.in);
-//
-//        try {
-//            clientSock = new DatagramSocket(clientPort);
-//            System.out.println("Client is port is: " + clientPort);
-//
-//        } catch (SocketException ex) {
-//            System.err.println(
-//                    "Failed to initialize the client socket. " +
-//                            "Is there a free port?"
-//            );
-//            ex.printStackTrace();
-//        }
-//
-//        final InetAddress serverAddress;
-//        try {
-//            serverAddress = InetAddress.getByName(SERVER_HOSTNAME);
-//        } catch (UnknownHostException ex) {
-//            System.err.println("Unknown host: " + SERVER_HOSTNAME);
-//            ex.printStackTrace();
-//            return;
-//        }
-//
-//        System.out.print("> ");
-//
-//        byte[] buffer = new byte[256];
-//
-//        while (!clientSock.isClosed()){
-//
-//            try {
-//                if(System.in.available() > 0){
-//                    String message = scanner.nextLine();
-//
-//                    if(message.equalsIgnoreCase("exit")){
-//                        var exitBuffer = message.getBytes(StandardCharsets.UTF_8);
-//                        clientSock.send(new DatagramPacket(
-//                                exitBuffer,
-//                                exitBuffer.length,
-//                                serverAddress,
-//                                serverPort
-//                        ));
-//
-//                        clientSock.close();
-//                        break;
-//                    }
-//
-//                    var messageBuffer = message.getBytes(StandardCharsets.UTF_8);
-//                    clientSock.send(new DatagramPacket(
-//                            messageBuffer,
-//                            messageBuffer.length,
-//                            serverAddress,
-//                            serverPort
-//                    ));
-//
-//                    var incomingPacket = new DatagramPacket(
-//                            buffer,
-//                            buffer.length,
-//                            serverAddress,
-//                            serverPort
-//                    );
-//                    clientSock.receive(incomingPacket);
-//
-//                    var messageResponse = new String(
-//                            incomingPacket.getData(), 0, incomingPacket.getLength(),
-//                            StandardCharsets.UTF_8
-//                    );
-//
-//                    System.out.println("Server: " + messageResponse);
-//
-//                    System.out.print("> ");
-//
-//
-//                }
-//            }  catch (IOException ex) {
-//                // If we encounter an IOException, it means there was a
-//                // problem communicating (IO = Input/Output) so we'll log
-//                // the error.
-//                System.err.println(
-//                        "A communication error occurred with the server."
-//                );
-//                ex.printStackTrace();
-//                break;
-//            }
-//        }
-//    }
 
 }

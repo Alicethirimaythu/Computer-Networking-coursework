@@ -1,8 +1,7 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,25 +10,46 @@ public class ImageHandler {
     public static void main(String[] args) throws Exception {
         ImageHandler p = new ImageHandler("src/pic1.jpg");
         var a = p.toImageByteArray();
-        var list = p.getListOfImgPacket(128, a);
+        System.out.println("image byte array size: " + a.length);
+        var list = p.getListOfImgPacket(512, a);
         System.out.println("Number of packets: " + list.size());
-        for(byte[] l: list){
-            System.out.println("Packet: " + Arrays.toString(l));
-            System.out.println("Size of each packet: " + l.length);
+
+        ByteBuffer buffer = ByteBuffer.allocate(1000);
+        for(int i = 0; i < list.size(); i++){
+            buffer.put(list.get(i));
+
+            System.out.println("Packet: " + Arrays.toString(list.get(i)));
+            //System.out.println("Packet in temp: " + Arrays.toString(temp));
+            System.out.println("Size of each packet: " + list.get(i).length);
         }
 
-//        ByteArrayInputStream bis = new ByteArrayInputStream(data);
-//        BufferedImage bImage2 = ImageIO.read(bis);
-//        ImageIO.write(bImage2, "jpg", new File("output.jpg"));
-//        System.out.println("image created");
+        byte[] temp = buffer.array();
+
+
+//        BufferedImage bImage = ImageIO.read(new File("src/inside.jpg"));
+//        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//        ImageIO.write(bImage, "jpg", bos);
+//        byte[] data = bos.toByteArray();
+
+        System.out.println("combined: " + Arrays.toString(temp));
+        ByteArrayInputStream bis = new ByteArrayInputStream(temp);
+        BufferedImage bImage2 = ImageIO.read(bis);
+        ImageIO.write(bImage2, "jpg", new File("output1.jpg"));
+        System.out.println("image created");
     }
 
     private String img_path = null;
+    private final List<byte[]> img_list;
 
     public ImageHandler(String path){
         this.img_path = path;
+        this.img_list = new ArrayList<>();
     };
 
+    public ImageHandler(List<byte[]> list){
+        this.img_path = null;
+        this.img_list = list;
+    }
     public byte[] toImageByteArray(){
         BufferedImage bImage = null;
         try {
@@ -59,6 +79,30 @@ public class ImageHandler {
         }
 
         return list;
+    }
+
+    public void Convert_toImage() {
+        var list = this.img_list;
+        if(!list.isEmpty()){
+            ByteBuffer buffer = ByteBuffer.allocate(20000000);
+            for (byte[] bytes : list) {
+                buffer.put(bytes);
+            }
+            var temp = buffer.array();
+
+            ByteArrayInputStream bis = new ByteArrayInputStream(temp);
+            try {
+                BufferedImage bImage2 = ImageIO.read(bis);
+                ImageIO.write(bImage2, "jpg", new File("received.jpg"));
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }else{
+            System.out.println("There is no data packets of image to convert back to image!");
+        }
+
+
     }
 
     public String getImg_path() {
