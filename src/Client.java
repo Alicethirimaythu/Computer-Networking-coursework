@@ -10,7 +10,7 @@ public class Client {
 
     private static final int MAX_BUFFERSIZE = 1024;
     private static InetAddress SERVER_HOSTNAME;
-    private int serverPort = 80;
+    private int serverPort = 8080;
     private int selfPort = 12500;
     private State state = State.NONE;
     private int seq_num = 0;

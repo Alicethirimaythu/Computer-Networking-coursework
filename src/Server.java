@@ -10,11 +10,11 @@ public class Server {
 
     private static final int MAX_BUFFERSIZE = 1024;
     private static DatagramSocket socket;
-    private final int port = 80;
+    private final int port = 8080;
     private State state = State.NONE;
     private int seq_num = 0;
     private int ack_num = 0;
-    private int counter;
+    private int counter = 0;
 
     public static void main(String[] args){
         var server = new Server();
@@ -77,13 +77,13 @@ public class Server {
 
                            // send the first packet of the data.
                            Packet imageP = new Packet();
-                           imageP.setData(imglist.get(0));
+                           imageP.setData(imglist.get(counter));
 
                            imageP.setSequence_num(seq_num);
                            imageP.setSync_bit(false);
 
                            imageP.setAck_num(0);
-                           imageP.setAck_bit(false);
+                           imageP.setAck_bit(true);
 
                            imageP.setSrc_port((short) port);
                            imageP.setDest_port((short) clientPort);
@@ -95,7 +95,7 @@ public class Server {
                            ImageHandler image = new ImageHandler("src/inside.jpg");
                            var imageBA = image.toImageByteArray();
                            var imglist = image.getListOfImgPacket(MAX_BUFFERSIZE, imageBA);
-                            System.out.println("image list size: " + imglist.size());
+                           //System.out.println("image list size: " + imglist.size());
                            // if the image has more than one packet
                            if (imglist.size() != 1 && counter < imglist.size()) {
                                Packet imgP = new Packet();
@@ -106,7 +106,7 @@ public class Server {
                                    imgP.setSync_bit(false);
 
                                    imgP.setAck_num(0);
-                                   imgP.setAck_bit(false);
+                                   imgP.setAck_bit(true);
 
                                    imgP.setSrc_port((short) port);
                                    imgP.setDest_port((short) clientPort);
@@ -118,6 +118,7 @@ public class Server {
                                Packet finP = new Packet();
                                finP.setSequence_num(hs1.getAck_num());
                                finP.setFin_bit(true);
+                               finP.setAck_bit(true);
                                finP.setSrc_port((short) port);
                                finP.setDest_port((short) clientPort);
                                send(clientAddress, clientPort, finP.toByteArray());
