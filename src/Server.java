@@ -79,10 +79,10 @@ public class Server {
                            Packet imageP = new Packet();
                            imageP.setData(imglist.get(counter));
 
-                           imageP.setSequence_num(seq_num);
+                           imageP.setSequence_num(hs1.getAck_num());
                            imageP.setSync_bit(false);
 
-                           imageP.setAck_num(0);
+                           imageP.setAck_num(hs1.getSequence_num());
                            imageP.setAck_bit(true);
 
                            imageP.setSrc_port((short) port);
@@ -105,7 +105,7 @@ public class Server {
                                    imgP.setSequence_num(hs1.getAck_num());
                                    imgP.setSync_bit(false);
 
-                                   imgP.setAck_num(0);
+                                   imgP.setAck_num(hs1.getSequence_num());
                                    imgP.setAck_bit(true);
 
                                    imgP.setSrc_port((short) port);
@@ -118,6 +118,7 @@ public class Server {
                                Packet finP = new Packet();
                                finP.setSequence_num(hs1.getAck_num());
                                finP.setFin_bit(true);
+                               finP.setAck_num(hs1.getSequence_num() + 1);
                                finP.setAck_bit(true);
                                finP.setSrc_port((short) port);
                                finP.setDest_port((short) clientPort);

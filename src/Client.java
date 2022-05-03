@@ -99,8 +99,9 @@ public class Client {
                     if(hs2.getSequence_num() > seq_num && !hs2.isFin_bit()){
                         img_list.add(hs2.getData());
                         seq_num = hs2.getSequence_num();
+                        ack.setSequence_num(ack.getAck_num());
                         ack.setAck_bit(true);
-                        ack.setAck_num(hs2.getSequence_num() + hs2.getData().length);
+                        ack.setAck_num(seq_num + hs2.getData().length);
 
                         ack.setDest_port((short)serverPort);
                         ack.setSrc_port((short)selfPort);
