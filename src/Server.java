@@ -136,7 +136,9 @@ public class Server {
                            //sending the last packet which is ack_seq
                            Packet ack_seq = new Packet();
                            ack_seq.setAck_bit(true);
-                           ack_seq.setSequence_num(hs1.getSequence_num() + 1);
+                           ack_seq.setFin_bit(true);
+                           ack_seq.setAck_num(hs1.getSequence_num() + 1);
+                           ack_seq.setSequence_num(hs1.getAck_num());
 
                            ack_seq.setSrc_port((short) port);
                            ack_seq.setDest_port((short) clientPort);
@@ -147,6 +149,7 @@ public class Server {
                    }
                    else if(state == State.FIN_ACKD){
                        socket.close();
+                       System.out.println("Disconnected!");
                    }
 
 

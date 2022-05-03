@@ -99,9 +99,9 @@ public class Client {
                     if(hs2.getSequence_num() > seq_num && !hs2.isFin_bit()){
                         img_list.add(hs2.getData());
                         seq_num = hs2.getSequence_num();
-                        ack.setSequence_num(ack.getAck_num());
+                        ack.setSequence_num(hs2.getAck_num());
                         ack.setAck_bit(true);
-                        ack.setAck_num(seq_num + hs2.getData().length);
+                        ack.setAck_num(hs2.getSequence_num()+ hs2.getData().length);
 
                         ack.setDest_port((short)serverPort);
                         ack.setSrc_port((short)selfPort);
@@ -135,9 +135,10 @@ public class Client {
                     }
                 }else if(state == State.FIN_SEND){
 
-                    if(hs2.isAck_bit() && hs2.getSequence_num() == (++seq_num)){
+                    if(hs2.isAck_bit() && hs2.getAck_num() == (++seq_num) && hs2.isFin_bit()){
                         System.out.println("Four way handshake 4/4");
                         clientSock.close();
+                        System.out.println("Disconnected!");
                     }
                 }
 
