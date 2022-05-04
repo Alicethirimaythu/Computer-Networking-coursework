@@ -1,3 +1,5 @@
+import jdk.jfr.Unsigned;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -11,26 +13,38 @@ public class Packet {
     private boolean ack_bit; // 4 bytes
     private boolean fin_bit; // 4 bytes
     private byte[] data;
+    private int checksum; // 4 bytes
 
 //    for viewing the packet is doing right and testing some code
     public static void main(String[] args){
 
-        byte[] data = new byte[512];
-        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, null);
-        p.setData(data);
-        System.out.println(Arrays.toString(p.toByteArray()));
-        System.out.println(p.toByteArray().length -24);
-        var a = Arrays.copyOfRange(p.toByteArray(), 24, p.toByteArray().length);
-        System.out.println("data length: " + a.length);
+        ImageHandler img = new ImageHandler("src/pic1.jpg");
+        var imgBA = img.toImageByteArray();
+        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, 0, null);
+        p.setData(imgBA);
+        int total = 0;
+        for(byte b: p.toByteArray()){
+            total += Byte.toUnsignedInt(b);
+        }
+        System.out.println("Total sum of bytes with checksum included before: " + total);
+        System.out.println("Before check sum" + p.toString());
+        int check = p.calculateChecksum(p.toByteArray());
+        p.setChecksum(check);
+        int totalA = 0;
+        for(byte b: p.toByteArray()){
+            totalA += Byte.toUnsignedInt(b);
+        }
+        System.out.println("Total sum of bytes with checksum included before: " + totalA);
+        System.out.println("After check sum" + p.toString());
 
-        System.out.println(p.toString());
+
     }
 
     public Packet(){
-        this((short) 0, (short)0, 0, 0, false, false, false, new byte[0]);
+        this((short) 0, (short)0, 0, 0, false, false, false, 0, new byte[0]);
     }
 
-    public Packet(short src_port, short dest_port, int sequence_num, int ack_num, boolean ack_bit, boolean sync_bit, boolean fin_bit, byte[] data){
+    public Packet(short src_port, short dest_port, int sequence_num, int ack_num, boolean ack_bit, boolean sync_bit, boolean fin_bit, int checksum, byte[] data){
         this.src_port = src_port;
         this.dest_port = dest_port;
         this.sequence_num = sequence_num;
@@ -38,6 +52,7 @@ public class Packet {
         this.sync_bit = sync_bit;
         this.ack_bit = ack_bit;
         this.fin_bit = fin_bit;
+        this.checksum = checksum;
         this.data = data;
     }
 
@@ -51,8 +66,9 @@ public class Packet {
         this.ack_bit = ByteBuffer.wrap(trimmed, 12, 4).getInt() == 1;
         this.sync_bit = ByteBuffer.wrap(trimmed, 16, 4).getInt() == 1;
         this.fin_bit = ByteBuffer.wrap(trimmed, 20, 4).getInt() == 1;
-        if(trimmed.length > 24){
-            this.data = Arrays.copyOfRange(byteArray, 24, byteArray.length);
+        this.checksum = ByteBuffer.wrap(trimmed, 24, 4).getInt();
+        if(trimmed.length > 28){
+            this.data = Arrays.copyOfRange(byteArray, 28, byteArray.length);
         }
     }
 
@@ -60,7 +76,7 @@ public class Packet {
     public byte[] toByteArray(){
         ByteBuffer buffer;
         if(this.data == null){
-            buffer = ByteBuffer.allocate(24);
+            buffer = ByteBuffer.allocate(28);
             buffer.putShort(this.src_port);
             buffer.putShort(this.dest_port);
             buffer.putInt(this.sequence_num);
@@ -68,9 +84,10 @@ public class Packet {
             buffer.putInt(this.ack_bit?1:0);
             buffer.putInt(this.sync_bit?1:0);
             buffer.putInt(this.fin_bit?1:0);
+            buffer.putInt(this.checksum);
         }
         else {
-            buffer = ByteBuffer.allocate(24 + this.data.length);
+            buffer = ByteBuffer.allocate(28 + this.data.length);
             buffer.putShort(this.src_port);
             buffer.putShort(this.dest_port);
             buffer.putInt(this.sequence_num);
@@ -78,15 +95,35 @@ public class Packet {
             buffer.putInt(this.ack_bit ? 1 : 0);
             buffer.putInt(this.sync_bit ? 1 : 0);
             buffer.putInt(this.fin_bit ? 1 : 0);
+            buffer.putInt(this.checksum);
             buffer.put(this.data);
         }
 
         return buffer.array();
     }
 
+    //calculating checksum by summing up all the bytes (converted into unsigned integers) in the byte array
+    //without the checksum
+    public int calculateChecksum(byte[] array){
+        int checksum = 0;
+        for (int i = 0; i < array.length; i++) {
+            if(i < 24 || i > 27){
+                checksum += Byte.toUnsignedInt(array[i]);
+            }
+        }
+        return checksum;
+    }
+
+    public int getChecksum(){
+        return this.checksum;
+    }
+    public void setChecksum(int checksum){
+        this.checksum = checksum;
+    }
+
     private byte[] trimming(byte[] byteArray){
         int i = byteArray.length - 1;
-        while(i>=24 && byteArray[i] == 0){
+        while(i>=28 && byteArray[i] == 0){
             --i;
         }
         return Arrays.copyOf(byteArray, i + 1);
@@ -168,6 +205,7 @@ public class Packet {
                     append("ACK Bit= ").append(ack_bit).append("; \n").
                     append("ACK Number= ").append(ack_num).append("; \n").
                     append("FIN Bit= ").append(fin_bit).append("; \n").
+                    append("Checksum= ").append(checksum).append("; \n").
                     append("DATA= ").append("null;").append("\n");
         }
         else{
@@ -178,6 +216,7 @@ public class Packet {
                     append("ACK Bit= ").append(ack_bit).append("; \n").
                     append("ACK Number= ").append(ack_num).append("; \n").
                     append("FIN Bit= ").append(fin_bit).append("; \n").
+                    append("Checksum= ").append(checksum).append("; \n").
                     append("DATA= ").append(Arrays.toString(data)).append("\n");
         }
         return builder.toString();

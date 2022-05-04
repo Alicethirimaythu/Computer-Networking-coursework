@@ -69,7 +69,7 @@ public class ImageHandler {
     }
 
     public List<byte[]> getListOfImgPacket(int maxBuffSize, byte[] imgByteArray){
-        int maxBuf = maxBuffSize - 24;
+        int maxBuf = maxBuffSize - 28;
         List<byte[]> list = new ArrayList<>();
         int start = 0;
         while(start < imgByteArray.length){

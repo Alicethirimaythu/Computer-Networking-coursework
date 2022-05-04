@@ -49,6 +49,7 @@ public class Client {
                 hs1.setDest_port((short)serverPort);
                 hs1.setSrc_port((short)selfPort);
                 hs1.setData(null);
+                hs1.setChecksum(hs1.calculateChecksum(hs1.toByteArray()));
                 state = State.SYN_SEND;
                 //System.out.println("hs1 packet: " + hs1.toString());
 
@@ -63,85 +64,106 @@ public class Client {
 
             try {
                 clientSock.receive(packet);
-                Packet hs2 = new Packet(buff);
-                System.out.println("\n<<Received from server>> " + hs2.toString());
+                Packet receivedPacket = new Packet(buff);
+                System.out.println("\n<<Received from server>> " + receivedPacket.toString());
 
-                if(state == State.SYN_SEND){
+                int checksum = receivedPacket.calculateChecksum(receivedPacket.toByteArray());
+                System.out.println("Checksum: " + checksum);
 
-                    //third handshake where client send ack packet to server
-                    if(hs2.getAck_num() == seq_num+1){
-                        System.out.println("\nThree way handshake 2/3");
+                if(checksum == receivedPacket.getChecksum()){
+                    if(state == State.SYN_SEND){
 
-                        //send ACK packet to server
-                        Packet hs3 = new Packet();
-                        seq_num = hs2.getAck_num();
-                        hs3.setSequence_num(seq_num);
-                        hs3.setSync_bit(false);
+                        //third handshake where client send ack packet to server
+                        if(receivedPacket.getAck_num() == seq_num+1){
+                            System.out.println("\nThree way handshake 2/3");
 
-                        ack_num = hs2.getSequence_num() + 1;
-                        hs3.setAck_num(ack_num);
-                        hs3.setAck_bit(true);
+                            //send ACK packet to server
+                            Packet hs3 = new Packet();
+                            seq_num = receivedPacket.getAck_num();
+                            hs3.setSequence_num(seq_num);
+                            hs3.setSync_bit(false);
 
-                        hs3.setDest_port((short)serverPort);
-                        hs3.setSrc_port((short)selfPort);
-                        send(hs3.toByteArray());
-                        System.out.println("\nThree way handshake 3/3");
-                        state = State.ESTABLISHED;
-                        seq_num = ack_num;
-                        seq_num--;
+                            ack_num = receivedPacket.getSequence_num() + 1;
+                            hs3.setAck_num(ack_num);
+                            hs3.setAck_bit(true);
+
+                            hs3.setDest_port((short)serverPort);
+                            hs3.setSrc_port((short)selfPort);
+
+                            hs3.setChecksum(hs3.calculateChecksum(hs3.toByteArray()));
+                            send(hs3.toByteArray());
+                            System.out.println("\nThree way handshake 3/3");
+                            state = State.ESTABLISHED;
+                            seq_num = ack_num;
+                            seq_num--;
+                        }
+                    }else if(state == State.ESTABLISHED){
+                        // to store all the image packets send from the server.
+
+
+                        // receive the image data
+                        Packet ack = new Packet();
+                        if(receivedPacket.getSequence_num() > seq_num && !receivedPacket.isFin_bit()){
+                            img_list.add(receivedPacket.getData());
+                            seq_num = receivedPacket.getSequence_num();
+                            ack.setSequence_num(receivedPacket.getAck_num());
+                            ack.setAck_bit(true);
+                            ack.setAck_num(receivedPacket.getSequence_num()+ receivedPacket.getData().length);
+
+                            ack.setDest_port((short)serverPort);
+                            ack.setSrc_port((short)selfPort);
+                            ack.setChecksum(ack.calculateChecksum(ack.toByteArray()));
+                            send(ack.toByteArray());
+
+                        }else if(receivedPacket.isFin_bit()){
+                            ImageHandler imgH = new ImageHandler(img_list);
+                            imgH.Convert_toImage();
+
+                            System.out.println("Four way handshake 1/4");
+
+                            // send ack packet
+                            Packet ackPack = new Packet();
+
+                            ackPack.setSequence_num(receivedPacket.getAck_num());
+                            ackPack.setAck_bit(true);
+                            ackPack.setAck_num(receivedPacket.getSequence_num());
+                            ackPack.setFin_bit(false);
+
+                            ackPack.setDest_port((short)serverPort);
+                            ackPack.setSrc_port((short)selfPort);
+
+                            ackPack.setChecksum(ackPack.calculateChecksum(ackPack.toByteArray()));
+                            send(ackPack.toByteArray());
+                            System.out.println("Four way handshake 2/4");
+
+                            // send fin_ack packet
+                            Packet finP = new Packet();
+
+                            finP.setAck_bit(true);
+                            finP.setAck_num(receivedPacket.getAck_num() + 1);
+
+                            finP.setDest_port((short)serverPort);
+                            finP.setSrc_port((short)selfPort);
+
+                            finP.setFin_bit(true);
+                            finP.setSequence_num(receivedPacket.getSequence_num());
+                            finP.setChecksum(finP.calculateChecksum(finP.toByteArray()));
+
+                            state = State.FIN_SEND;
+                            send(finP.toByteArray());
+                            System.out.println("Four way handshake 3/4");
+                        }
+                    }else if(state == State.FIN_SEND){
+
+                        if(receivedPacket.isAck_bit() && receivedPacket.isFin_bit()){
+                            System.out.println("Four way handshake 4/4");
+                            clientSock.close();
+                            System.out.println("Disconnected!");
+                        }
                     }
-                }else if(state == State.ESTABLISHED){
-                    // to store all the image packets send from the server.
-
-
-                    // receive the image data
-                    Packet ack = new Packet();
-                    if(hs2.getSequence_num() > seq_num && !hs2.isFin_bit()){
-                        img_list.add(hs2.getData());
-                        seq_num = hs2.getSequence_num();
-                        ack.setSequence_num(hs2.getAck_num());
-                        ack.setAck_bit(true);
-                        ack.setAck_num(hs2.getSequence_num()+ hs2.getData().length);
-
-                        ack.setDest_port((short)serverPort);
-                        ack.setSrc_port((short)selfPort);
-                        send(ack.toByteArray());
-
-                    }else if(hs2.isFin_bit()){
-                        ImageHandler imgH = new ImageHandler(img_list);
-                        imgH.Convert_toImage();
-
-                        state = State.FIN_RECV;
-                        System.out.println("Four way handshake 1/4");
-
-                        // send fin_ack packet
-                        Packet finP = new Packet();
-
-                        finP.setAck_bit(true);
-                        finP.setAck_num(hs2.getSequence_num() + 1);
-
-                        finP.setDest_port((short)serverPort);
-                        finP.setSrc_port((short)selfPort);
-
-                        finP.setFin_bit(true);
-                        seq_num = ack_num + 1;
-                        finP.setSequence_num(seq_num);
-
-                        send(finP.toByteArray());
-                        state = State.FIN_SEND;
-                        send(finP.toByteArray());
-                        System.out.println("Four way handshake 2/4");
-                        System.out.println("Four way handshake 3/4");
-                    }
-                }else if(state == State.FIN_SEND){
-
-                    if(hs2.isAck_bit() && hs2.getAck_num() == (++seq_num) && hs2.isFin_bit()){
-                        System.out.println("Four way handshake 4/4");
-                        clientSock.close();
-                        System.out.println("Disconnected!");
-                    }
+                }else{
+                    System.out.println("The packet is corrupted as the checksum is not the same!");
                 }
-
 
             } catch (IOException e) {
                 System.err.println("Failed to received packet!");
