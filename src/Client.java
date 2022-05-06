@@ -27,7 +27,7 @@ public class Client {
 
     public void start(){
         try {
-            SERVER_HOSTNAME = InetAddress.getByName("localhost");
+            SERVER_HOSTNAME = InetAddress.getByName("10.77.115.66");
             clientSock = new DatagramSocket(selfPort);
             System.out.println("Client is connected at address: " +
                     SERVER_HOSTNAME + " and port: " + selfPort);
@@ -71,7 +71,7 @@ public class Client {
                 int checksum = receivedPacket.calculateChecksum(receivedPacket.toByteArray());
                 System.out.println("Checksum: " + checksum);
 
-                if(checksum != receivedPacket.getChecksum()){
+                if(checksum == receivedPacket.getChecksum()){
                     if(state == State.SYN_SEND){
 
                         //third handshake where client send ack packet to server
