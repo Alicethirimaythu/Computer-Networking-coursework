@@ -21,7 +21,8 @@ public class Client {
 
     public static void main(String[] args){
         var client = new Client();
-        client.start();
+            client.start();
+
     }
 
     public void start(){
@@ -70,7 +71,7 @@ public class Client {
                 int checksum = receivedPacket.calculateChecksum(receivedPacket.toByteArray());
                 System.out.println("Checksum: " + checksum);
 
-                if(checksum == receivedPacket.getChecksum()){
+                if(checksum != receivedPacket.getChecksum()){
                     if(state == State.SYN_SEND){
 
                         //third handshake where client send ack packet to server
@@ -165,7 +166,8 @@ public class Client {
                     System.out.println("The packet is corrupted as the checksum is not the same!");
                 }
 
-            } catch (IOException e) {
+            }
+             catch (IOException e) {
                 System.err.println("Failed to received packet!");
                 throw new RuntimeException(e);
             }

@@ -1,8 +1,5 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -14,8 +11,9 @@ public class Server {
     private State state = State.NONE;
     private int seq_num = 0;
     private int ack_num = 0;
-    private int counter = 0;
-
+    private int counter = 0; // counter to keep track of how many image packets have been sent based on the list of image chunk
+    private int timeout = 0;
+    private DatagramPacket lastSent;
     public static void main(String[] args){
         var server = new Server();
         server.start();
@@ -36,6 +34,7 @@ public class Server {
                try {
                    // received the first SYNC packet from the server to start the first handshake
                    socket.receive(packet);
+                   socket.setSoTimeout(1000);
                    Packet receivedPacket = new Packet(buff);
                    var clientAddress = packet.getAddress();
                    var clientPort = packet.getPort();
@@ -174,6 +173,17 @@ public class Server {
                        System.out.println("The packet is corrupted as the checksum is not the same!");
                    }
 
+               } catch(SocketTimeoutException sto){
+                   System.err.println("NO Packet received in 1 second");
+                   if(timeout <10){
+                       socket.send(lastSent);
+                       System.out.println("Packet is resent!");
+                       timeout++;
+                   }else{
+                       System.err.println("Disconnected! No packet received after 10 seconds");
+                       break;
+                   }
+
                } catch (IOException e) {
                    System.err.println("Failed to received the packet!");
                    throw new RuntimeException(e);
@@ -181,8 +191,7 @@ public class Server {
 
            }
 
-
-       } catch (SocketException e) {
+       } catch (IOException e) {
            System.err.println("Cannot connect to the server!");
            throw new RuntimeException(e);
        }
@@ -191,6 +200,7 @@ public class Server {
 
     private void send(InetAddress address, int port, byte[] p){
         var outgoingPacket = new DatagramPacket(p, p.length, address, port);
+        lastSent = outgoingPacket;
         try {
             socket.send(outgoingPacket);
         } catch (IOException e) {
