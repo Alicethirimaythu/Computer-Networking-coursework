@@ -42,9 +42,10 @@ public class Server {
 
                    //checking each packet with the checksum
                    int checksum = receivedPacket.calculateChecksum(receivedPacket.toByteArray());
-                   System.out.println("checksum: " + checksum);
+                   System.out.println("Calculated checksum: " + checksum);
 
                    if(checksum == receivedPacket.getChecksum()){
+                       System.out.println("Successful checksum!");
                        if(state == State.NONE){
 
                            // second handshake where server acknowledge and send sync+ack packet to client

@@ -16,29 +16,29 @@ public class Packet {
     private int checksum; // 4 bytes
 
 //    for viewing the packet is doing right and testing some code
-    public static void main(String[] args){
-
-        ImageHandler img = new ImageHandler("src/pic1.jpg");
-        var imgBA = img.toImageByteArray();
-        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, 0, null);
-        p.setData(imgBA);
-        int total = 0;
-        for(byte b: p.toByteArray()){
-            total += Byte.toUnsignedInt(b);
-        }
-        System.out.println("Total sum of bytes with checksum included before: " + total);
-        System.out.println("Before check sum" + p.toString());
-        int check = p.calculateChecksum(p.toByteArray());
-        p.setChecksum(check);
-        int totalA = 0;
-        for(byte b: p.toByteArray()){
-            totalA += Byte.toUnsignedInt(b);
-        }
-        System.out.println("Total sum of bytes with checksum included before: " + totalA);
-        System.out.println("After check sum" + p.toString());
-
-
-    }
+//    public static void main(String[] args){
+//
+//        ImageHandler img = new ImageHandler("src/pic1.jpg");
+//        var imgBA = img.toImageByteArray();
+//        Packet p = new Packet((short) 3001, (short) 3002, 1, 0, true, false, false, 0, null);
+//        p.setData(imgBA);
+//        int total = 0;
+//        for(byte b: p.toByteArray()){
+//            total += Byte.toUnsignedInt(b);
+//        }
+//        System.out.println("Total sum of bytes with checksum included before: " + total);
+//        System.out.println("Before check sum" + p.toString());
+//        int check = p.calculateChecksum(p.toByteArray());
+//        p.setChecksum(check);
+//        int totalA = 0;
+//        for(byte b: p.toByteArray()){
+//            totalA += Byte.toUnsignedInt(b);
+//        }
+//        System.out.println("Total sum of bytes with checksum included before: " + totalA);
+//        System.out.println("After check sum" + p.toString());
+//
+//
+//    }
 
     public Packet(){
         this((short) 0, (short)0, 0, 0, false, false, false, 0, new byte[0]);
